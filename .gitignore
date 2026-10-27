@@ -2,3 +2,9 @@ node_modules/
 reports/
 .env
 *.local.json
+
+# Karate / Maven
+**/target/
+.idea/
+.vscode/
+*.iml
