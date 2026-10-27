@@ -3,7 +3,7 @@ Feature: API de Posts (Anidados por Usuario)
   Background:
     * url baseUrl
 
-  @CreatePost
+  @Smock @CreatePost
   Scenario: Crear un post para un usuario (POST Anidado)
     * def userFeature = call read('users.feature@CreateUser')
     * def userId = userFeature.userId

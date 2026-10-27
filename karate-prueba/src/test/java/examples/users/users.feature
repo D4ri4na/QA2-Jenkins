@@ -14,7 +14,7 @@ Feature: Crud para crear Usuario
       "status": "active"
     }
     """
-    @CreateUser
+    @Smock @CreateUser
     Scenario: Crear un nuevo usuario
       * def randomString = java.util.UUID.randomUUID().toString()
       * def randomEmail = 'user_' + randomString + '@gmail.com'
