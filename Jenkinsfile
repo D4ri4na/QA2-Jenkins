@@ -29,7 +29,7 @@ pipeline {
                     allowMissing: false,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
-                    reportDir: 'target/karate-reports',
+                    reportDir: 'karate-prueba/target/karate-reports',
                     reportFiles: 'karate-summary.html',
                     reportName: 'Reporte de Pruebas Karate'
                 ])
