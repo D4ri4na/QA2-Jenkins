@@ -1,52 +1,68 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven' // Nombre del Maven configurado en Jenkins
-        jdk 'Java17'   // Nombre del JDK configurado en Jenkins
+    options {
+        skipDefaultCheckout(true)
+        disableConcurrentBuilds()
+        timestamps()
+        timeout(time: 15, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    environment {
+        JAVA_HOME = 'C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.12.8-hotspot'
+        MAVEN_HOME = 'C:\\Users\\Usuario\\AppData\\Local\\Programs\\apache-maven-3.9.9'
     }
 
     stages {
-
-        stage('Checkout') {
+        stage('Descargar codigo Karate') {
             steps {
-                echo 'Clonando el repositorio...'
-                git branch: 'main', url: 'https://github.com'
+                script {
+                    if (isUnix()) {
+                        error('Esta pipeline requiere un agente Windows con Java 21 y Maven 3.9.9. Ajusta JAVA_HOME y MAVEN_HOME si usas otras rutas.')
+                    }
+                }
+                cleanWs(deleteDirs: true, disableDeferredWipeout: true)
+                checkout([$class: 'GitSCM', branches: [[name: '*/karate']], userRemoteConfigs: [[url: 'https://github.com/D4ri4na/QA2-Jenkins.git']]])
             }
         }
-
-        stage('Build & Test') {
+        stage('Verificar Java y Maven') {
             steps {
-                echo 'Ejecutando pruebas Karate...'
-                bat 'mvn test -Dkarate.options="--tags @Smock"'
+                bat '''@echo off
+set "PATH=%JAVA_HOME%\\bin;%MAVEN_HOME%\\bin;%PATH%"
+"%JAVA_HOME%\\bin\\java.exe" -version
+if errorlevel 1 exit /b %errorlevel%
+call "%MAVEN_HOME%\\bin\\mvn.cmd" -version
+exit /b %errorlevel%
+'''
             }
         }
-
-        stage('Publicar Reporte') {
+        stage('Ejecutar pruebas Karate') {
             steps {
-                echo 'Publicando reporte HTML de Karate...'
-                publishHTML([
-                    allowMissing: false,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'target/karate-reports',
-                    reportFiles: 'karate-summary.html',
-                    reportName: 'Reporte de Pruebas Karate'
-                ])
+                withCredentials([string(credentialsId: 'qa2-gorest-token', variable: 'GOREST_TOKEN')]) {
+                    bat '''@echo off
+set "PATH=%JAVA_HOME%\\bin;%MAVEN_HOME%\\bin;%PATH%"
+call "%MAVEN_HOME%\\bin\\mvn.cmd" -B -ntp -f karate-prueba/pom.xml clean test
+exit /b %errorlevel%
+'''
+                }
             }
         }
     }
 
     post {
         always {
-            echo 'Pipeline finalizado — limpiando workspace.'
-            cleanWs()
+            script {
+                if (fileExists('karate-prueba/target/karate-reports/karate-summary.html')) {
+                    junit testResults: 'karate-prueba/target/karate-reports/*.xml', allowEmptyResults: false
+                } else if (currentBuild.currentResult == 'SUCCESS') {
+                    error('Karate termino sin generar su reporte HTML.')
+                }
+            }
+            archiveArtifacts artifacts: 'karate-prueba/target/karate-reports/**,karate-prueba/target/surefire-reports/**', allowEmptyArchive: true
         }
-        success {
-            echo 'Pruebas Karate ejecutadas con éxito.'
-        }
-        failure {
-            echo 'Falló alguna etapa del pipeline.'
+        cleanup {
+            cleanWs(deleteDirs: true, disableDeferredWipeout: true)
         }
     }
 }
