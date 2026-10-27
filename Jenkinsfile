@@ -1,79 +1,64 @@
 pipeline {
     agent any
 
-    options {
-        skipDefaultCheckout(true)
-        disableConcurrentBuilds()
-        timestamps()
-        timeout(time: 15, unit: 'MINUTES')
-        buildDiscarder(logRotator(numToKeepStr: '20'))
-    }
-
     environment {
-        NODEJS_HOME = 'C:\\Program Files\\nodejs'
-        NODE_OPTIONS = '--use-system-ca'
-        HEADLESS = 'true'
+        // Carpeta absoluta para resultados y reportes
+        ALLURE_RESULTS = "${env.WORKSPACE}/allure-results"
+        ALLURE_REPORT  = "${env.WORKSPACE}/allure-report"
     }
 
     stages {
-        stage('Descargar codigo WDIO') {
+        stage('Preparar Workspace') {
             steps {
-                script {
-                    if (isUnix()) {
-                        error('Esta pipeline requiere un agente Windows con Node.js 24 y Google Chrome instalado.')
-                    }
-                }
-                cleanWs(deleteDirs: true, disableDeferredWipeout: true)
-                checkout([$class: 'GitSCM', branches: [[name: '*/wdio']], userRemoteConfigs: [[url: 'https://github.com/D4ri4na/QA2-Jenkins.git']]])
+                echo "Limpiando workspace..."
+                deleteDir()
             }
         }
+
+        stage('Checkout') {
+            steps {
+                git branch: 'wdio', url: 'https://github.com/D4ri4na/QA2-Jenkins.git'
+            }
+        }
+
         stage('Instalar dependencias') {
             steps {
-                dir('webDriveIO') {
-                    bat '''@echo off
-set "PATH=%NODEJS_HOME%\\bin;%NODEJS_HOME%;%PATH%"
-call "%NODEJS_HOME%\\npm.cmd" ci --no-audit --no-fund
-exit /b %errorlevel%
-'''
-                }
+                bat 'npm install'
             }
         }
-        stage('Ejecutar pruebas WebdriverIO') {
+
+        stage('Ejecutar WDIO') {
             steps {
-                dir('webDriveIO') {
-                    bat '''@echo off
-set "PATH=%NODEJS_HOME%;%PATH%"
-call "%NODEJS_HOME%\\npm.cmd" test
-exit /b %errorlevel%
-'''
-                }
+                echo "Ejecutando pruebas WDIO..."
+                bat "npx wdio run wdio.conf.js"
+            }
+        }
+
+        stage('Generar reporte Allure') {
+            steps {
+                echo "Generando reporte Allure..."
+                bat """
+                npx allure generate %ALLURE_RESULTS% --clean -o %ALLURE_REPORT%
+                """
+            }
+        }
+
+        stage('Publicar reporte Allure en Jenkins') {
+            steps {
+                echo "Publicando reporte Allure usando el plugin..."
+                allure([
+                    includeProperties: false,
+                    jdk: '',
+                    results: [[path: '**/allure-results/*.json']], // <-- patrón agregado
+                    reportBuildPolicy: 'ALWAYS'
+                ])
             }
         }
     }
 
     post {
         always {
-            script {
-                if (fileExists('webDriveIO/reports/junit')) {
-                    junit testResults: 'webDriveIO/reports/junit/*.xml', allowEmptyResults: false
-                }
-                if (fileExists('webDriveIO/reports/index.html')) {
-                    publishHTML(target: [
-                        allowMissing: false,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'webDriveIO/reports',
-                        reportFiles: 'index.html',
-                        reportName: 'Reporte de Pruebas WebdriverIO'
-                    ])
-                } else if (currentBuild.currentResult == 'SUCCESS') {
-                    error('WebdriverIO termino sin generar su reporte HTML.')
-                }
-            }
-            archiveArtifacts artifacts: 'webDriveIO/reports/**', allowEmptyArchive: true
-        }
-        cleanup {
-            cleanWs(deleteDirs: true, disableDeferredWipeout: true)
+            echo 'Pipeline finalizada'
         }
     }
 }
