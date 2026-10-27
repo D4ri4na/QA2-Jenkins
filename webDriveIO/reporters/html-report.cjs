@@ -1,0 +1,24 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const output = path.resolve(__dirname, '../reports');
+const resultsFile = path.join(output, 'results.json');
+const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+
+exports.prepare = function () {
+    fs.mkdirSync(path.join(output, 'screenshots'), { recursive: true });
+    fs.writeFileSync(resultsFile, '[]');
+};
+
+exports.record = function (result) {
+    const results = JSON.parse(fs.readFileSync(resultsFile, 'utf8'));
+    results.push(result);
+    fs.writeFileSync(resultsFile, JSON.stringify(results, null, 2));
+};
+
+exports.finish = function (exitCode) {
+    const results = fs.existsSync(resultsFile) ? JSON.parse(fs.readFileSync(resultsFile, 'utf8')) : [];
+    const passed = results.filter(test => test.passed).length;
+    const rows = results.map(test => `<tr><td>${escape(test.suite)}</td><td>${escape(test.name)}</td><td>${test.passed ? 'Aprobada' : 'Fallida'}</td><td>${escape(test.duration)} ms</td><td>${escape(test.error)}</td></tr>`).join('');
+    fs.mkdirSync(output, { recursive: true });
+    fs.writeFileSync(path.join(output, 'index.html'), `<!doctype html><html lang="es"><meta charset="utf-8"><title>Reporte WebdriverIO</title><style>body{font:16px system-ui;margin:40px;color:#172b4d}table{border-collapse:collapse;width:100%}td,th{padding:12px;text-align:left;border-bottom:1px solid #ddd}h1{color:#155e75}</style><h1>Práctico 4 · WebdriverIO</h1><p>Resultado: ${exitCode === 0 && results.length > 0 ? 'CORRECTO' : 'FALLIDO'} · Pruebas: ${results.length} · Aprobadas: ${passed} · Fallidas: ${results.length - passed}</p><table><tr><th>Suite</th><th>Prueba</th><th>Estado</th><th>Duración</th><th>Error</th></tr>${rows}</table></html>`);
+};

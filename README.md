@@ -1,66 +1,56 @@
-# QA2-Jenkins · Pipeline de pruebas API
+# QA2-Jenkins · Rama wdio
 
-Práctico 3, bloque 2: integración de una pipeline que ejecuta las pruebas de GoREST en Jenkins. La configuración se guarda en `Jenkinsfile` y se descarga desde GitHub en cada ejecución.
-
-## Qué hace la pipeline
-
-1. Limpia el espacio de trabajo y descarga la revisión del repositorio que corresponde a la compilación.
-2. Verifica Node.js y npm en el agente Windows.
-3. Instala las versiones fijadas en `package-lock.json` mediante `npm ci`.
-4. Ejecuta Newman con el token de GoREST proporcionado por Jenkins.
-5. Publica los resultados JUnit y archiva los reportes HTML, JSON y XML, incluso cuando fallan las pruebas.
-6. Limpia el espacio de trabajo al terminar. Los reportes quedan guardados en la compilación de Jenkins.
-
-Una prueba fallida devuelve un código de error y hace fallar la compilación. No se omiten comprobaciones ni se ignoran errores para obtener un resultado verde. La pipeline tiene un tiempo máximo de 10 minutos y evita ejecuciones simultáneas del mismo trabajo.
-
-## Requisitos
-
-- Jenkins con un agente Windows, Git y Java compatibles con la instalación.
-- Node.js 24 y npm instalados en `C:\Program Files\nodejs`. Si usas otra ubicación, cambia `NODEJS_HOME` en `Jenkinsfile`.
-- Plugins Git, Pipeline (incluido Declarative), Credentials Binding, JUnit, Workspace Cleanup y Timestamper.
-- Credencial de tipo **Secret text**, con ID `qa2-gorest-token`, que contenga un token válido de GoREST y esté disponible para el trabajo.
-
-Se utiliza `--use-system-ca` para verificar HTTPS con los certificados de confianza de Windows. La validación de certificados permanece activa.
-
-## Configurar Jenkins después del commit y push
-
-El trabajo anterior `Newman_Example` es de estilo libre. Para mostrar las etapas de esta pipeline, crea un trabajo de tipo **Pipeline**, por ejemplo `Newman_Pipeline`:
-
-1. Abre **Nueva tarea**, escribe el nombre y selecciona **Pipeline**.
-2. En la sección **Pipeline**, elige **Pipeline script from SCM**.
-3. Selecciona **Git** e ingresa `https://github.com/D4ri4na/QA2-Jenkins.git`.
-4. En **Branch Specifier**, escribe `*/main`.
-5. En **Script Path**, escribe `Jenkinsfile` (está en la raíz del repositorio).
-6. Guarda y selecciona **Construir ahora**.
-
-El repositorio público no necesita credenciales de Git para descargarlo. La credencial `qa2-gorest-token` autentica las peticiones a GoREST; la pipeline la vincula a `GOREST_TOKEN` únicamente durante las pruebas. No escribas el token dentro del Jenkinsfile.
-
-Si hay varios agentes, asigna el trabajo a uno de Windows con Node.js instalado; esta pipeline utiliza comandos de Windows. En una instalación con un único agente Windows puede usarse tal como está.
-
-## Resultados para la presentación
-
-En la compilación de Jenkins revisa:
-
-- **Etapas**: descarga, herramientas, dependencias y pruebas Newman.
-- **Console Output**: peticiones, comprobaciones y resultado final.
-- **Test Result**: resultados JUnit, incluidos los fallos si existen.
-- **Artifacts**: `reports/Newman_Report.html`, `reports/summary.json` y `reports/junit.xml`.
-
-La colección actual contiene **13 peticiones y 32 comprobaciones**. Crea un usuario, modifica sus datos, crea su post y comentario, valida sus relaciones y elimina los recursos creados. Los IDs se obtienen durante cada ejecución; no depende de datos de una sesión anterior. Se conservan los códigos HTTP esperados y el límite de 2000 ms de PATCH. La disponibilidad, la latencia y el token de la API real pueden afectar el resultado.
+Proyecto del ZIP `webDriveIO-practico4-dpa.zip`, incorporado en `webDriveIO/` y preparado para una pipeline independiente de Jenkins.
 
 ## Ejecutar localmente
 
-Con Node.js 24, configura `GOREST_TOKEN` en el entorno de tu terminal y ejecuta desde la raíz del repositorio:
+Requiere Node.js 24, npm y Google Chrome. Desde la raiz del repositorio:
 
 ```powershell
+cd webDriveIO
 npm.cmd ci
+$env:NODE_OPTIONS = '--use-system-ca'
 npm.cmd test
 ```
 
-Se generan los mismos reportes dentro de `reports/`, carpeta excluida de Git.
+Por defecto Chrome se ejecuta sin ventana (headless), adecuado para el servicio de Jenkins. Para mostrar la ventana durante una ejecucion local, configura `$env:HEADLESS = 'false'` antes de ejecutar las pruebas.
 
-## Dependencias y credenciales
+WebdriverIO gestiona el driver compatible con Chrome automaticamente. La primera ejecucion necesita acceso a Internet para descargarlo. Si Chrome no esta en una ruta habitual, indica su ejecutable mediante `CHROME_BINARY`. Para utilizar un driver propio compatible, configura `CHROMEDRIVER_PATH`.
 
-El generador HTML 1.0.5 declara una dependencia antigua de Newman; `.npmrc` permite instalarlo con Newman 6.2.3, combinación utilizada por el proyecto. El reporte HTML usa una plantilla que no incluye tokens, cabeceras de autenticación ni el entorno exportado.
+El ejecutable incluido en el ZIP permanece localmente en `webDriveIO/drivers/`, excluido de Git. No se utiliza la ruta absoluta del proyecto original.
 
-El archivo de entorno versionado tiene el token vacío. Si el token publicado en el historial anterior todavía no se rotó, renúevalo en GoREST y actualiza su valor en la credencial de Jenkins.
+## Pruebas conservadas
+
+Las cinco pruebas originales de `test/practico4.js` verifican en `the-internet.herokuapp.com`:
+
+1. Seleccion de un checkbox.
+2. Seleccion de la opcion 2 de un desplegable.
+3. Agregar y eliminar un elemento.
+4. Aceptar una alerta y comprobar el mensaje.
+5. Mostrar la informacion de perfil al pasar el cursor.
+
+No se omiten pruebas ni se ignoran fallos. Una prueba fallida devuelve un codigo de error. Su resultado depende de la disponibilidad de la web de practica.
+
+## Crear la pipeline de Jenkins
+
+Despues de publicar los cambios de esta rama:
+
+1. Crea una nueva tarea de tipo **Pipeline**, por ejemplo `WDIO_Pipeline`.
+2. Selecciona **Pipeline script from SCM** y **Git**.
+3. Repositorio: `https://github.com/D4ri4na/QA2-Jenkins.git`.
+4. Rama: `*/wdio` (sin `tree/`).
+5. Script Path: `Jenkinsfile`.
+6. Guarda y ejecuta **Construir ahora**.
+
+El agente debe ser Windows, tener Chrome instalado y Node.js en `C:\Program Files\nodejs`. Si cambia esta ubicacion, ajusta `NODEJS_HOME` en el Jenkinsfile. Los plugins necesarios son Git, Pipeline, JUnit, HTML Publisher, Workspace Cleanup y Timestamper. Estas pruebas no necesitan el token de GoREST.
+
+La pipeline descarga `wdio`, instala las dependencias fijadas en el lockfile, ejecuta WebdriverIO en headless, publica los reportes y limpia el workspace al finalizar.
+
+## Reportes
+
+- HTML: `webDriveIO/reports/index.html`, publicado como **Reporte de Pruebas WebdriverIO**.
+- JUnit: `webDriveIO/reports/junit/*.xml`, visible en **Test Result**.
+- JSON: `webDriveIO/reports/results.json`.
+- Capturas en caso de fallo: `webDriveIO/reports/screenshots/`.
+
+Los reportes y las dependencias quedan excluidos de Git y se archivan en cada compilacion de Jenkins antes de limpiar el espacio de trabajo. La instalacion del navegador y su driver no modifica los perfiles personales de Chrome.

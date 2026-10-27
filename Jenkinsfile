@@ -5,53 +5,42 @@ pipeline {
         skipDefaultCheckout(true)
         disableConcurrentBuilds()
         timestamps()
-        timeout(time: 10, unit: 'MINUTES')
+        timeout(time: 15, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '20'))
     }
 
     environment {
         NODEJS_HOME = 'C:\\Program Files\\nodejs'
         NODE_OPTIONS = '--use-system-ca'
+        HEADLESS = 'true'
     }
 
     stages {
-        stage('Descargar codigo') {
+        stage('Descargar codigo WDIO') {
             steps {
                 script {
                     if (isUnix()) {
-                        error('Esta pipeline usa un agente Windows con Node.js 24 instalado. Asigna el trabajo a ese agente.')
+                        error('Esta pipeline requiere un agente Windows con Node.js 24 y Google Chrome instalado.')
                     }
                 }
                 cleanWs(deleteDirs: true, disableDeferredWipeout: true)
-                checkout scm
+                checkout([$class: 'GitSCM', branches: [[name: '*/wdio']], userRemoteConfigs: [[url: 'https://github.com/D4ri4na/QA2-Jenkins.git']]])
             }
         }
-
-        stage('Verificar herramientas') {
-            steps {
-                bat '''@echo off
-set "PATH=%NODEJS_HOME%;%PATH%"
-"%NODEJS_HOME%\\node.exe" --version
-if errorlevel 1 exit /b %errorlevel%
-call "%NODEJS_HOME%\\npm.cmd" --version
-exit /b %errorlevel%
-'''
-            }
-        }
-
         stage('Instalar dependencias') {
             steps {
-                bat '''@echo off
-set "PATH=%NODEJS_HOME%;%PATH%"
+                dir('webDriveIO') {
+                    bat '''@echo off
+set "PATH=%NODEJS_HOME%\\bin;%NODEJS_HOME%;%PATH%"
 call "%NODEJS_HOME%\\npm.cmd" ci --no-audit --no-fund
 exit /b %errorlevel%
 '''
+                }
             }
         }
-
-        stage('Ejecutar pruebas Newman') {
+        stage('Ejecutar pruebas WebdriverIO') {
             steps {
-                withCredentials([string(credentialsId: 'qa2-gorest-token', variable: 'GOREST_TOKEN')]) {
+                dir('webDriveIO') {
                     bat '''@echo off
 set "PATH=%NODEJS_HOME%;%PATH%"
 call "%NODEJS_HOME%\\npm.cmd" test
@@ -65,13 +54,23 @@ exit /b %errorlevel%
     post {
         always {
             script {
-                if (fileExists('reports/junit.xml')) {
-                    junit testResults: 'reports/junit.xml', allowEmptyResults: false
+                if (fileExists('webDriveIO/reports/junit')) {
+                    junit testResults: 'webDriveIO/reports/junit/*.xml', allowEmptyResults: false
+                }
+                if (fileExists('webDriveIO/reports/index.html')) {
+                    publishHTML(target: [
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'webDriveIO/reports',
+                        reportFiles: 'index.html',
+                        reportName: 'Reporte de Pruebas WebdriverIO'
+                    ])
                 } else if (currentBuild.currentResult == 'SUCCESS') {
-                    error('Newman termino sin generar reports/junit.xml.')
+                    error('WebdriverIO termino sin generar su reporte HTML.')
                 }
             }
-            archiveArtifacts artifacts: 'reports/*.html,reports/*.json,reports/*.xml', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'webDriveIO/reports/**', allowEmptyArchive: true
         }
         cleanup {
             cleanWs(deleteDirs: true, disableDeferredWipeout: true)
