@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="es"><meta charset="utf-8"><title>QA2 - Newman</title>
+<style>body{font:16px system-ui;margin:40px auto;max-width:1000px;padding:0 24px;color:#172b4d}table{border-collapse:collapse;width:100%}th,td{padding:10px;text-align:left;border-bottom:1px solid #ddd}h1{color:#155e75}.failed{color:#b91c1c}</style>
+<h1>QA2 - Resultados de Newman</h1>
+<p>{{timestamp}} · Newman {{version}} · Duración {{summary.duration}}</p>
+<p>Peticiones: {{summary.stats.requests.total}} · Comprobaciones: {{summary.stats.assertions.total}} · Comprobaciones fallidas: {{summary.stats.assertions.failed}}</p>
+{{#each aggregations}}<h2>{{parent.name}}</h2>
+{{#each executions}}<h3>{{item.name}} — HTTP {{response.code}}</h3><p>Tiempo: {{mean.time}}</p>
+<table><tr><th>Comprobación</th><th>Aprobadas</th><th>Fallidas</th></tr>
+{{#each assertions}}<tr><td>{{name}}</td><td>{{passed}}</td><td class="failed">{{failed}}</td></tr>{{/each}}</table>
+{{/each}}{{/each}}
+</html>
