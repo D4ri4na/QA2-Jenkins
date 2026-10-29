@@ -2,6 +2,17 @@
   "name": "qa2-jenkins",
   "version": "1.0.0",
   "private": true,
-  "scripts": {"test": "node --use-system-ca scripts/run-newman.cjs"},
-  "dependencies": {"newman": "6.2.3", "newman-reporter-html": "1.0.5"}
+  "scripts": {
+    "test": "node --use-system-ca scripts/run-newman.cjs",
+    "test:web": "npm --prefix webDriveIO test",
+    "test:web:browserstack": "npm --prefix webDriveIO run test:browserstack",
+    "test:mobile": "npm --prefix appium test",
+    "test:mobile:local": "npm --prefix appium run test:local",
+    "upload:app": "node scripts/upload-browserstack.cjs",
+    "check": "node --test scripts/check-config.test.cjs"
+  },
+  "dependencies": {
+    "newman": "6.2.3",
+    "newman-reporter-html": "1.0.5"
+  }
 }

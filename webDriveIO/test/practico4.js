@@ -42,6 +42,12 @@ describe('Practico 4', () => {
         await browser.url('https://the-internet.herokuapp.com/javascript_alerts');
 
         const alertButton = await $('button[onclick="jsAlert()"]');
+        if (!browser.isBidi) {
+            await alertButton.click();
+            await browser.acceptAlert();
+            await expect(await $('#result')).toHaveText('You successfully clicked an alert');
+            return;
+        }
         let alertAccepted = false;
         let alertError;
         const handleDialog = async (dialog) => {

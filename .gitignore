@@ -6,3 +6,12 @@ reports/
 # WebdriverIO: driver local y resultados generados
 **/drivers/*.exe
 logs/
+
+.browserstack-app.json
+.env.*
+!.env.example
+*.apk
+*.apks
+*.aab
+*.xapk
+allure-results/
