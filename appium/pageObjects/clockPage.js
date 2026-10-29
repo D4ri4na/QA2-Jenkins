@@ -67,7 +67,12 @@ class ClockPage {
     async expandAlarm() {
         await this.ensureAlarm();
         const label = await this.alarm().$(id('label_setting'));
-        if (!await label.isDisplayed()) await this.alarm().$(id('clock_switch_flow')).click();
+        const legacyLabel = await this.alarm().$(id('edit_label'));
+        if (!await label.isDisplayed() && !await legacyLabel.isDisplayed()) {
+            const arrow = await this.alarm().$(id('arrow'));
+            if (await arrow.isDisplayed()) await arrow.click();
+            else await this.alarm().$(id('clock_switch_flow')).click();
+        }
     }
     async deleteAlarm() {
         await this.tab('alarm');

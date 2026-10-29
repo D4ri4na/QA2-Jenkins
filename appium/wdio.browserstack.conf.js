@@ -10,6 +10,8 @@ exports.config = {
         'appium:appPackage': 'com.google.android.deskclock',
         'appium:appActivity': 'com.android.deskclock.DeskClock',
         'appium:autoGrantPermissions': true,
+        'appium:language': 'en',
+        'appium:locale': 'US',
         'bstack:options': {
             ...cloud.options('Practico 7 - Appium Reloj'),
             deviceName: process.env.BROWSERSTACK_DEVICE || 'Google Pixel 8',

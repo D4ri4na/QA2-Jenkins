@@ -40,7 +40,7 @@ describe('Practico 7 - App de Tiempo', () => {
 
     it('Iniciar y pausar el cronometro', async () => {
         await clock.tab('stopwatch');
-        const start = await clock.first([id('start_stop_button'), id('fab')]);
+        const start = await clock.first([id('start_stop_button'), id('stopwatch_start_pause'), id('fab')]);
         const state = async () => {
             const description = await start.getAttribute('content-desc');
             return description && description !== 'null' ? description : await start.getText();
@@ -55,13 +55,13 @@ describe('Practico 7 - App de Tiempo', () => {
             if (/Stop|Pause/i.test(await state())) await start.click();
         }
         await browser.waitUntil(async () => /Start|Resume/i.test(await state()), { timeoutMsg: 'El cronometro no quedo pausado' });
-        await (await clock.first([id('reset_button'), '~Reset'])).click();
+        await (await clock.first([id('reset_button'), '~Reset', id('left_button')])).click();
         await expect($(id('stopwatch_time_text'))).toHaveText(expect.stringMatching(/^0[0:.]*$/));
     });
     it('Configurar un temporizador de un minuto sin dejarlo sonando', async () => {
         await clock.tab('timer');
         if (!await $(id('timer_setup_digit_1')).isDisplayed()) {
-            await (await clock.first([id('add_timer_button')])).click();
+            await (await clock.first([id('add_timer_button'), '~Add timer', id('right_button')])).click();
         }
         const clear = await $(id('timer_setup_delete'));
         for (let digit = 0; digit < 6 && await clear.isEnabled(); digit++) await clear.click();
@@ -69,9 +69,15 @@ describe('Practico 7 - App de Tiempo', () => {
         const zero = await clock.first([id('timer_setup_digit_0')]);
         await zero.click();
         await zero.click();
-        await expect($(id('hour_text'))).toHaveText('00');
-        await expect($(id('minute_text'))).toHaveText('01');
-        await expect($(id('second_text'))).toHaveText('00');
+        if (await $(id('hour_text')).isDisplayed()) {
+            await expect($(id('hour_text'))).toHaveText('00');
+            await expect($(id('minute_text'))).toHaveText('01');
+            await expect($(id('second_text'))).toHaveText('00');
+        } else {
+            // Reloj 7.5 representa los tres campos en un unico texto con unidades.
+            const time = await clock.first([id('timer_setup_time')]);
+            await expect(time).toHaveText(expect.stringMatching(/^(?:0+\s*h\s*0?1\s*m\s*0+\s*s|0+:0?1:0+)$/i));
+        }
         await (await clock.first([id('timer_start_button'), id('fab'), '~Start'])).click();
         try {
             const pause = await clock.first([id('play_pause_button'), id('fab'), '~Pause']);

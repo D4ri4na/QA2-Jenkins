@@ -39,7 +39,7 @@ pipeline {
 set "PATH=%NODEJS_HOME%;%PATH%"
 if defined BROWSERSTACK_APP_PATH goto prepareApp
 if defined BROWSERSTACK_APP_ID goto prepareApp
-set "BROWSERSTACK_APP_PATH=C:\\ProgramData\\Jenkins\\.jenkins\\apps\\qa2-reloj\\Reloj-completo.xapk"
+set "BROWSERSTACK_APP_PATH=C:\\ProgramData\\Jenkins\\.jenkins\\apps\\qa2-reloj\\Reloj-completo.apk"
 :prepareApp
 node scripts/upload-browserstack.cjs
 exit /b %errorlevel%
