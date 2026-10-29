@@ -7,7 +7,10 @@ function uploadError(status, body, secrets = []) {
     for (const secret of secrets.filter(Boolean).sort((a, b) => b.length - a.length)) {
         detail = detail.split(secret).join('[REDACTED]');
     }
-    return `BrowserStack rechazo la carga (HTTP ${status}): ${detail.slice(0, 2000)}`;
+    const guidance = detail.includes('BROWSERSTACK_UNPROCESSABLE_ENTITY')
+        ? ' BrowserStack documenta este codigo como limite de prueba de la app o marca de su sistema de abuso. Revisar con soporte: https://www.browserstack.com/support/faq/app-automate/common-errors/browserstack_unprocessable_entity-error-during-app-upload'
+        : '';
+    return `BrowserStack rechazo la carga (HTTP ${status}): ${detail.slice(0, 2000)}${guidance}`;
 }
 
 async function uploadWithRetry(url, options, { fetchImpl = fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
