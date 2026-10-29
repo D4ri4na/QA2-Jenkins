@@ -53,6 +53,18 @@ Chrome se inicia en headless. Para mostrarlo, usar `$env:HEADLESS = 'false'`. Se
 
 La app instalada en el emulador puede estar dividida en `base.apk` y otros APK de recursos. **No subir solo base.apk si necesita splits**: conseguir un APK universal, un AAB o XAPK completo compatible. No se incluye un APK de terceros ni claves de acceso en el repositorio.
 
+## Reloj instalado directamente en este Jenkins
+
+El paquete completo extraido del emulador esta instalado en:
+
+```text
+C:\ProgramData\Jenkins\.jenkins\apps\qa2-reloj\Reloj-completo.xapk
+```
+
+En Practico4 puedes dejar **APP_ID** y **APP_PATH** vacios: la etapa movil usa este archivo del agente Windows y lo sube a BrowserStack con la credencial `browserstack-credentials`. Una ruta explicita en APP_PATH tiene prioridad; si solo indicas APP_ID, se usa la app ya subida. En otros agentes debes indicar su propio APP_PATH o APP_ID.
+
+El artefacto `appium/.browserstack-app.json` conserva el APP_ID devuelto por BrowserStack, incluso si las pruebas posteriores fallan. El binario no se publica en Git.
+
 ## Appium en BrowserStack desde la terminal
 
 Configurar las variables de credenciales de forma privada en la terminal. El repositorio no carga archivos `.env` automaticamente; `.env.example` solo documenta nombres.

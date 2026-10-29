@@ -103,7 +103,14 @@ exit /b %errorlevel%
 set "PATH=%NODEJS_HOME%;%PATH%"
 call npm.cmd --prefix appium ci --no-audit --no-fund
 if errorlevel 1 exit /b %errorlevel%
-if not defined BROWSERSTACK_APP_PATH goto runTests
+if defined BROWSERSTACK_APP_PATH goto uploadApp
+if defined BROWSERSTACK_APP_ID goto runTests
+set "BROWSERSTACK_APP_PATH=C:\\ProgramData\\Jenkins\\.jenkins\\apps\\qa2-reloj\\Reloj-completo.xapk"
+:uploadApp
+if exist "%BROWSERSTACK_APP_PATH%" goto appFound
+echo No se encontro la app Reloj. Configura APP_PATH o APP_ID.
+exit /b 1
+:appFound
 set "BROWSERSTACK_APP_ID="
 node scripts/upload-browserstack.cjs
 if errorlevel 1 exit /b %errorlevel%
@@ -127,7 +134,7 @@ exit /b %errorlevel%
                     }
                 }
                 cleanup {
-                    archiveArtifacts artifacts: 'appium/reports/**', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'appium/.browserstack-app.json,appium/reports/**', allowEmptyArchive: true
                     cleanWs(deleteDirs: true, disableDeferredWipeout: true)
                 }
             }
