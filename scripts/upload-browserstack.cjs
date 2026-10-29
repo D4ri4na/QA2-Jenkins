@@ -10,6 +10,19 @@ function uploadError(status, body, secrets = []) {
     return `BrowserStack rechazo la carga (HTTP ${status}): ${detail.slice(0, 2000)}`;
 }
 
+async function uploadWithRetry(url, options, { fetchImpl = fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            const response = await fetchImpl(url, { ...options, signal: AbortSignal.timeout(180000) });
+            if (![429, 502, 503, 504].includes(response.status) || attempt === 3) return response;
+            await response.body?.cancel();
+        } catch (error) {
+            if (attempt === 3) throw error;
+        }
+        console.log(`Conexion temporalmente no disponible. Reintentando carga (${attempt + 1}/3)...`);
+        await sleep(attempt * 5000);
+    }
+}
 async function main({
     output = path.resolve(__dirname, '../appium/.browserstack-app.json'),
     appPath = process.argv[2] || process.env.BROWSERSTACK_APP_PATH,
@@ -29,10 +42,18 @@ async function main({
     form.append('file', await fs.openAsBlob(appPath), path.basename(appPath));
     form.append('custom_id', 'QA2Reloj');
     const encoded = Buffer.from(`${username}:${key}`).toString('base64');
-    const response = await fetch('https://api-cloud.browserstack.com/app-automate/upload', {
-        method: 'POST', headers: { Authorization: `Basic ${encoded}` },
-        body: form, signal: AbortSignal.timeout(180000)
-    });
+    let response;
+    try {
+        response = await uploadWithRetry('https://api-cloud.browserstack.com/app-automate/upload', {
+            method: 'POST', headers: { Authorization: `Basic ${encoded}` }, body: form
+        });
+    } catch (error) {
+        const code = error.cause?.code || error.code || error.name;
+        const message = uploadError('sin respuesta', `${code}: ${error.cause?.message || error.message}`, [username, key, encoded]);
+        fs.mkdirSync(reports, { recursive: true });
+        fs.writeFileSync(path.join(reports, 'browserstack-upload-error.json'), JSON.stringify({ message }, null, 2));
+        throw new Error(message);
+    }
     if (!response.ok) {
         const raw = await response.text();
         let body;
@@ -51,4 +72,4 @@ async function main({
     console.log('Reloj cargado en BrowserStack. Identificador guardado para las pruebas moviles.');
 }
 if (require.main === module) main().catch(error => { console.error(error.message); process.exitCode = 1; });
-module.exports = { uploadError, main };
+module.exports = { uploadError, uploadWithRetry, main };

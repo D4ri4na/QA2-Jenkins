@@ -43,3 +43,27 @@ test('upload persists app_url or sanitized error; rejects invalid app ID', async
         fs.rmSync(dir, { recursive: true, force: true });
     }
 });
+test('transient connection failures retry; invalid app responses do not retry', async () => {
+    const { uploadWithRetry } = require('./upload-browserstack.cjs');
+    let calls = 0;
+    const sleeps = [];
+    const response = await uploadWithRetry('https://example.invalid', {}, {
+        fetchImpl: async () => { calls++; if (calls < 3) throw new TypeError('fetch failed'); return new Response('{}'); },
+        sleep: async ms => sleeps.push(ms)
+    });
+    assert.equal(response.status, 200);
+    assert.equal(calls, 3);
+    assert.deepEqual(sleeps, [5000, 10000]);
+    calls = 0;
+    await uploadWithRetry('https://example.invalid', {}, {
+        fetchImpl: async () => { calls++; return new Response('{}', { status: 422 }); },
+        sleep: async () => assert.fail('422 must not retry')
+    });
+    assert.equal(calls, 1);
+    calls = 0;
+    await assert.rejects(uploadWithRetry('https://example.invalid', {}, {
+        fetchImpl: async () => { calls++; throw Object.assign(new TypeError('fetch failed'), { cause: { code: 'UND_ERR_CONNECT_TIMEOUT' } }); },
+        sleep: async () => {}
+    }), error => error.cause.code === 'UND_ERR_CONNECT_TIMEOUT');
+    assert.equal(calls, 3);
+});
