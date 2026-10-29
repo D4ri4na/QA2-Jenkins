@@ -9,7 +9,7 @@
     "test:mobile": "npm --prefix appium test",
     "test:mobile:local": "npm --prefix appium run test:local",
     "upload:app": "node scripts/upload-browserstack.cjs",
-    "check": "node --test scripts/check-config.test.cjs"
+    "check": "node --test scripts/check-config.test.cjs scripts/upload-browserstack.test.cjs"
   },
   "dependencies": {
     "newman": "6.2.3",

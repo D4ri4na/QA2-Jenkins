@@ -23,6 +23,37 @@ pipeline {
         HEADLESS = 'true'
     }
     stages {
+        stage('Preparar Reloj en BrowserStack') {
+            when { beforeAgent true; expression { params.RUN_BROWSERSTACK } }
+            agent any
+            environment {
+                BROWSERSTACK_APP_ID = "${params.APP_ID}"
+                BROWSERSTACK_APP_PATH = "${params.APP_PATH}"
+            }
+            steps {
+                deleteDir()
+                checkout scm
+                withCredentials([usernamePassword(credentialsId: 'browserstack-credentials',
+                    usernameVariable: 'BROWSERSTACK_USERNAME', passwordVariable: 'BROWSERSTACK_ACCESS_KEY')]) {
+                    bat '''@echo off
+set "PATH=%NODEJS_HOME%;%PATH%"
+if defined BROWSERSTACK_APP_PATH goto prepareApp
+if defined BROWSERSTACK_APP_ID goto prepareApp
+set "BROWSERSTACK_APP_PATH=C:\\ProgramData\\Jenkins\\.jenkins\\apps\\qa2-reloj\\Reloj-completo.xapk"
+:prepareApp
+node scripts/upload-browserstack.cjs
+exit /b %errorlevel%
+'''
+                }
+                stash name: 'reloj-browserstack', includes: 'appium/.browserstack-app.json', useDefaultExcludes: false
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'appium/.browserstack-app.json,appium/reports/browserstack-upload-error.json', allowEmptyArchive: true, defaultExcludes: false
+                    cleanWs(deleteDirs: true, disableDeferredWipeout: true)
+                }
+            }
+        }
         stage('Newman - pipeline de API') {
             when { expression { params.RUN_API_PIPELINES } }
             steps {
@@ -87,7 +118,7 @@ exit /b %errorlevel%
             when { beforeAgent true; expression { params.RUN_BROWSERSTACK } }
             agent any
             environment {
-                BROWSERSTACK_APP_ID = "${params.APP_ID}"
+                BROWSERSTACK_APP_ID = ''
                 BROWSERSTACK_APP_PATH = "${params.APP_PATH}"
                 BROWSERSTACK_DEVICE = "${params.DEVICE}"
                 BROWSERSTACK_OS_VERSION = "${params.ANDROID_VERSION}"
@@ -97,24 +128,14 @@ exit /b %errorlevel%
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     deleteDir()
                     checkout scm
+                    unstash 'reloj-browserstack'
                     withCredentials([usernamePassword(credentialsId: 'browserstack-credentials',
                         usernameVariable: 'BROWSERSTACK_USERNAME', passwordVariable: 'BROWSERSTACK_ACCESS_KEY')]) {
                         bat '''@echo off
 set "PATH=%NODEJS_HOME%;%PATH%"
 call npm.cmd --prefix appium ci --no-audit --no-fund
 if errorlevel 1 exit /b %errorlevel%
-if defined BROWSERSTACK_APP_PATH goto uploadApp
-if defined BROWSERSTACK_APP_ID goto runTests
-set "BROWSERSTACK_APP_PATH=C:\\ProgramData\\Jenkins\\.jenkins\\apps\\qa2-reloj\\Reloj-completo.xapk"
-:uploadApp
-if exist "%BROWSERSTACK_APP_PATH%" goto appFound
-echo No se encontro la app Reloj. Configura APP_PATH o APP_ID.
-exit /b 1
-:appFound
-set "BROWSERSTACK_APP_ID="
-node scripts/upload-browserstack.cjs
-if errorlevel 1 exit /b %errorlevel%
-:runTests
+
 call npm.cmd --prefix appium test
 exit /b %errorlevel%
 '''

@@ -149,3 +149,9 @@ El estado de las verificaciones realizadas esta documentado en `VERIFICACION.md`
 - [Subir una aplicacion desde el equipo](https://www.browserstack.com/docs/app-automate/appium/upload-app-from-filesystem)
 - [Capacidades de WebdriverIO](https://www.browserstack.com/docs/app-automate/appium/wdio-browserstack-capabilities)
 - [Jenkins Credentials Binding](https://www.jenkins.io/doc/pipeline/steps/credentials-binding/)
+
+### Carga de Reloj antes de las pruebas
+
+La primera etapa prepara Reloj en BrowserStack. Con APP_ID y APP_PATH vacios usa la copia instalada en `C:\ProgramData\Jenkins\.jenkins\apps\qa2-reloj\Reloj-completo.xapk`. Si la carga falla, la ejecucion termina antes de lanzar Newman, Karate y WDIO. El error del proveedor se conserva sin credenciales en el artefacto `appium/reports/browserstack-upload-error.json`. Si funciona, el identificador se comparte con Appium y se archiva en `appium/.browserstack-app.json`.
+
+El paquete local se reconstruyo con `min_sdk_version: 32`, leido del manifiesto del APK original. Sus dos APK conservan sus firmas y contenido. La aceptacion en BrowserStack y la ejecucion movil deben comprobarse en una ejecucion real de Jenkins; las pruebas del cargador simulan respuestas HTTP para verificar el tratamiento de errores.
