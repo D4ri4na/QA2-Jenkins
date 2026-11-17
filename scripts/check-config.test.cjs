@@ -45,7 +45,10 @@ test('Los reportes no declaran aprobada una ejecucion vacia ni un hook fallido',
     const output = fs.mkdtempSync(path.join(os.tmpdir(), 'qa2-report-'));
     try {
         const report = createReporter(output, 'QA2 <prueba>');
+        fs.mkdirSync(path.join(output, 'logs'));
+        fs.writeFileSync(path.join(output, 'logs', 'wdio.log'), 'log activo');
         report.prepare();
+        assert.equal(fs.readFileSync(path.join(output, 'logs', 'wdio.log'), 'utf8'), 'log activo');
         assert.throws(() => report.finish(0), /sin pruebas/);
         report.record({ suite: 'Reloj', name: '<script>error</script>', passed: true, duration: 1 });
         report.finish(1);

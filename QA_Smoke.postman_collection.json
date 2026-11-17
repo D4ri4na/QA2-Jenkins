@@ -1,0 +1,129 @@
+{
+  "info": {
+    "name": "QA Smoke - GoREST",
+    "description": "Validación rápida de disponibilidad y contrato básico de endpoints públicos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "SMOKE - Usuarios disponibles",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP esperado 200 - SMOKE - Usuarios disponibles\", () => {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "      pm.test('Usuarios retorna una lista JSON', () => pm.expect(pm.response.json()).to.be.an('array'));",
+              "      pm.test('Tiempo de respuesta dentro del umbral', () => pm.expect(pm.response.responseTime).to.be.below(Number(pm.environment.get('maxResponseTimeMs') || 5000)));",
+              "    }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{url}}/users",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "users"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "SMOKE - Posts disponibles",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP esperado 200 - SMOKE - Posts disponibles\", () => {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) pm.test('Posts es una lista', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{url}}/posts",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "posts"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "SMOKE - Tareas disponibles",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP esperado 200 - SMOKE - Tareas disponibles\", () => {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) pm.test('Tareas es una lista', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{url}}/todos",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "todos"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "response": []
+    }
+  ]
+}

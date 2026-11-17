@@ -1,0 +1,993 @@
+{
+  "info": {
+    "_postman_id": "f13db824-5183-4fad-b338-db930689de74",
+    "name": "PruebaQA1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54343105",
+    "_collection_link": "https://go.postman.co/collection/54343105-f13db824-5183-4fad-b338-db930689de74?source=collection_link",
+    "description": "Flujo de pruebas GoREST para Postman y Newman en Jenkins. Primero crea y actualiza un usuario, luego crea posts/comentarios/tareas, y finalmente elimina el usuario en CLEANUP. Configura el token en el entorno local o en credenciales de Jenkins; nunca publiques el token en GitHub."
+  },
+  "item": [
+    {
+      "name": "USERS",
+      "item": [
+        {
+          "name": "GETListUsers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Tiempo de respuesta menor al limite configurado', function () {",
+                  "    const maxMs = Number(pm.environment.get('maxResponseTimeMs') || 3000);",
+                  "    pm.expect(pm.response.responseTime).to.be.below(maxMs);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('La respuesta es un array de usuarios', function () {",
+                  "        pm.expect(pm.response.json()).to.be.an('array');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/users",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POSTUser",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Clear identifiers from previous runs; no stale record must be reused.",
+                  "['id', 'id_post', 'id_comment', 'id_todo'].forEach(function (key) {",
+                  "    pm.environment.unset(key);",
+                  "});",
+                  "// Make each user email unique so repeat CI builds do not collide.",
+                  "const suffix = Date.now().toString(36) + '_' + Math.floor(Math.random() * 1000000).toString(36);",
+                  "pm.environment.set('email', 'usuario_' + suffix + '@test.com');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Tiempo de respuesta menor al limite configurado', function () {",
+                  "    const maxMs = Number(pm.environment.get('maxResponseTimeMs') || 3000);",
+                  "    pm.expect(pm.response.responseTime).to.be.below(maxMs);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test('Nombre del Usuario', function () {",
+                  "        pm.expect(data.name).to.eql('Ariany Lopez Melgar');",
+                  "        pm.expect(data.id).to.be.a('number').and.greaterThan(0);",
+                  "    });",
+                  "    pm.environment.set('name', data.name);",
+                  "    pm.environment.set('id', String(data.id));",
+                  "    pm.environment.set('gender', data.gender);",
+                  "    pm.environment.set('status', data.status);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \r\n    \"name\": \"Ariany Lopez Melgar\",\r\n    \"email\": \"{{email}}\",\r\n    \"gender\": \"female\", \r\n    \"status\": \"active\" \r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/users",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GETUser",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"ID Usuario igual que la variable de entorno\", function () {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    pm.expect(jsonData.id).to.eql(Number(pm.environment.get(\"id\")));\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/users/{{id}}",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCHUser",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test('Nombre y estado actualizados correctamente', function () {",
+                  "        pm.expect(data.name).to.eql('Krishna Ariany Lopez');",
+                  "        pm.expect(data.status).to.eql('active');",
+                  "    });",
+                  "    pm.environment.set('name', data.name);",
+                  "    pm.environment.set('status', data.status);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \r\n    \"name\": \"Krishna Ariany Lopez\", \r\n    \"status\": \"active\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/users/{{id}}",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUTUser",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test('Nombre y estado reemplazados correctamente', function () {",
+                  "        pm.expect(data.name).to.eql('Ariany Lopez');",
+                  "        pm.expect(data.status).to.eql('inactive');",
+                  "    });",
+                  "    pm.environment.set('name', data.name);",
+                  "    pm.environment.set('status', data.status);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \r\n    \"name\": \"Ariany Lopez\", \r\n    \"status\": \"inactive\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/users/{{id}}",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "NESTED",
+      "item": [
+        {
+          "name": "POSTPost",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.unset('id_post');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test('El post pertenece al usuario correcto', function () {",
+                  "        pm.expect(data.user_id).to.eql(Number(pm.environment.get('id')));",
+                  "        pm.expect(data.id).to.be.a('number').and.greaterThan(0);",
+                  "    });",
+                  "    pm.environment.set('id_post', String(data.id));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": {{id}},\n  \"title\": \"Los beneficios de aprender programación\",\n  \"body\": \"Aprender a programar permite desarrollar el pensamiento lógico, resolver problemas de manera estructurada y crear soluciones tecnológicas. Además, es una habilidad cada vez más importante en diferentes áreas profesionales.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/users/{{id}}/posts",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}",
+                "posts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GETListPosts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "}); "
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/posts",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "posts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GETUserPost",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    const posts = pm.response.json();",
+                  "    pm.test('El post creado aparece en el listado del usuario', function () {",
+                  "        pm.expect(posts).to.be.an('array');",
+                  "        pm.expect(posts.some(function (p) {",
+                  "            return p.id === Number(pm.environment.get('id_post'));",
+                  "        })).to.eql(true);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/users/{{id}}/posts",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}",
+                "posts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POSTComment",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.unset('id_comment');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test('El comentario pertenece al post creado', function () {",
+                  "        pm.expect(data.post_id).to.eql(Number(pm.environment.get('id_post')));",
+                  "        pm.expect(data.id).to.be.a('number').and.greaterThan(0);",
+                  "    });",
+                  "    pm.environment.set('id_comment', String(data.id));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{name}}\",\n  \"email\": \"{{email}}\",\n  \"body\": \"Comentario de prueba para el post creado durante esta ejecución automatizada.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/posts/{{id_post}}/comments",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "posts",
+                "{{id_post}}",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GETListComments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/comments",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GETUserComment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    const comments = pm.response.json();",
+                  "    pm.test('El comentario creado aparece en el post', function () {",
+                  "        pm.expect(comments).to.be.an('array');",
+                  "        pm.expect(comments.some(function (c) {",
+                  "            return c.id === Number(pm.environment.get('id_comment'));",
+                  "        })).to.eql(true);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/posts/{{id_post}}/comments",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "posts",
+                "{{id_post}}",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POSTTodo",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.unset('id_todo');",
+                  "// Generate a due date in the future rather than relying on an expired date.",
+                  "const inSevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);",
+                  "pm.environment.set('due_on', inSevenDays.toISOString());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test('La tarea pertenece al usuario y queda pendiente', function () {",
+                  "        pm.expect(data.user_id).to.eql(Number(pm.environment.get('id')));",
+                  "        pm.expect(data.status).to.eql('pending');",
+                  "        pm.expect(data.title).to.include('Completar las pruebas');",
+                  "        pm.expect(data.id).to.be.a('number').and.greaterThan(0);",
+                  "    });",
+                  "    pm.environment.set('id_todo', String(data.id));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": {{id}},\n  \"title\": \"Completar las pruebas del endpoint de usuarios.\",\n  \"due_on\": \"{{due_on}}\",\n  \"status\": \"pending\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/users/{{id}}/todos",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}",
+                "todos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GETTodo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    const todos = pm.response.json();",
+                  "    pm.test('La tarea creada aparece entre las del usuario', function () {",
+                  "        pm.expect(todos).to.be.an('array');",
+                  "        pm.expect(todos.some(function (t) {",
+                  "            return t.id === Number(pm.environment.get('id_todo'));",
+                  "        })).to.eql(true);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/users/{{id}}/todos",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}",
+                "todos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GETListTodos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/todos",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "todos"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "CLEANUP",
+      "description": "La eliminacion se realiza al final, despues de probar los recursos asociados al usuario.",
+      "item": [
+        {
+          "name": "DELETEUser",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test('Tiempo de respuesta menor al limite configurado', function () {",
+                  "    const maxMs = Number(pm.environment.get('maxResponseTimeMs') || 3000);",
+                  "    pm.expect(pm.response.responseTime).to.be.below(maxMs);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/users/{{id}}",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "if (pm.response.code >= 400) {",
+          "    console.error('ERROR API en ' + pm.info.requestName + ': HTTP ' + pm.response.code + ' - ' + pm.response.text());",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}

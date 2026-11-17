@@ -1,5 +1,24 @@
 # Practico 4 del bloque 2 - Integracion de pipelines
 
+## API importada de practico3_jenkinsfile
+
+Se incorporaron las colecciones y herramientas de [arianylopez/jenkins-QA, rama practico3_jenkinsfile](https://github.com/arianylopez/jenkins-QA/tree/practico3_jenkinsfile), commit `9d676c6fb5613e24afbb966921c37667d4bc958d`, conservando WDIO y Appium de esta rama.
+
+El `Jenkinsfile` conserva por defecto el trabajo `Newman_Pipeline` existente, que ya aprobo en Jenkins. Para ejecutar las colecciones importadas en el mismo checkout, activar **USE_IMPORTED_API**: smoke (3 solicitudes), regresion CRUD (15) y negativas (4), con dashboard, JUnit y puerta de calidad. Karate sigue usando su trabajo existente.
+
+Para USE_IMPORTED_API o Jenkinsfile.api, crear en Jenkins una credencial **Secret text** con ID **qa2-gorest-token** y un token valido de GoREST. La ejecucion predeterminada conserva las credenciales del trabajo Newman existente. El token exportado en el repositorio de origen no se copia: el environment queda sin secreto y el ejecutor lo inyecta en memoria. Se usa Newman instalado por `npm ci`, sin rutas del perfil de Ariany.
+
+Para ejecutar solo API, configurar una Pipeline desde SCM con este repositorio, rama `*/wdio` y Script Path **Jenkinsfile.api**. Incluye los parametros originales `MODO`, `PRUEBAS_NEGATIVAS`, `MAX_PROMEDIO_MS`, `MAX_P95_MS` y `SIMULAR_FALLO`. Localmente, con `GOREST_TOKEN` ya definido en el entorno:
+
+```powershell
+npm.cmd ci --no-audit --no-fund
+npm.cmd run test:api
+```
+
+`npm test` ejecuta la misma suite API. Los resultados estan en `reports/QA_Dashboard.html`, `reports/QA_Resumen.json` y `reports/*.xml`. El dashboard rechaza reportes ausentes, pruebas fallidas y latencias superiores al limite. Los JSON intermedios solo contienen metricas y se eliminan al generar el dashboard.
+
+La pipeline integrada conserva los requisitos de BrowserStack descritos abajo. El registro del 17 de noviembre confirma que Reloj ya pudo cargarse y abrir una sesion; la seccion final documenta el fallo de compatibilidad posterior. `Jenkinsfile.api` permite ejecutar la API independientemente.
+
 Rama **wdio** de `https://github.com/D4ri4na/QA2-Jenkins`.
 
 La consigna pide integrar las pipelines vistas en clase y agregar pruebas WebdriverIO y el proyecto Appium usando BrowserStack. Esta entrega incorpora la suite web del practico 4 y la app Reloj del practico 7. Los originales moviles se conservan en `appium/original/` como referencia; solo `appium/test/` se ejecuta.
@@ -8,12 +27,12 @@ La consigna pide integrar las pipelines vistas en clase y agregar pruebas Webdri
 
 | Etapa | Implementacion | Resultado |
 | --- | --- | --- |
-| API Newman | Invoca `Newman_Pipeline` existente | Enlace y resultado del trabajo hijo |
+| API Newman | Trabajo existente, o colecciones importadas con USE_IMPORTED_API | Resultado del trabajo hijo, o QA Dashboard y JUnit |
 | API Karate | Invoca `karate` existente | Enlace y resultado del trabajo hijo |
 | WebdriverIO | Cinco pruebas con Chrome headless | HTML, JUnit, JSON y capturas en fallos |
 | Appium + BrowserStack | Pruebas de Reloj en Android real remoto | HTML, JUnit, JSON; video y sesion en BrowserStack |
 
-El `Jenkinsfile` principal es la integracion completa. `Jenkinsfile.web` conserva la pipeline web independiente anterior. Los trabajos de API conservan su configuracion y sus credenciales de GoREST. La pipeline no ocupa un ejecutor mientras espera a los trabajos hijos, evitando bloquear Jenkins con pocos ejecutores. Los fallos se propagan y las otras suites siguen ejecutandose. Una ejecucion que desactiva API o BrowserStack se marca **UNSTABLE / parcial**, nunca como entrega completa aprobada.
+El `Jenkinsfile` principal es la integracion completa. `Jenkinsfile.web` conserva la pipeline web independiente y `Jenkinsfile.api` ejecuta solo las colecciones Newman importadas. La opcion USE_IMPORTED_API usa la credencial `qa2-gorest-token`; los trabajos Newman y Karate existentes conservan sus credenciales. La pipeline no ocupa un ejecutor mientras espera a los trabajos hijos. Los fallos de las suites se propagan y las etapas siguientes siguen ejecutandose; un fallo en la preparacion inicial de BrowserStack detiene la pipeline. Una ejecucion que desactiva API o BrowserStack se marca **UNSTABLE / parcial**.
 
 ## Requisitos
 
@@ -21,7 +40,7 @@ El `Jenkinsfile` principal es la integracion completa. `Jenkinsfile.web` conserv
 - Node.js 24 en `C:\Program Files\nodejs` y npm. Ajustar `NODEJS_HOME` si corresponde.
 - Google Chrome instalado en el agente para WDIO local.
 - Plugins Jenkins: Pipeline, Git, Credentials Binding, JUnit, HTML Publisher, Workspace Cleanup, Timestamper.
-- Trabajos `Newman_Pipeline` y `karate` funcionando. Sus nombres se pueden cambiar en los parametros.
+- Trabajos `Newman_Pipeline` y `karate` funcionando. La credencial Secret text `qa2-gorest-token` solo se necesita al activar USE_IMPORTED_API o ejecutar Jenkinsfile.api.
 - Cuenta BrowserStack con acceso y minutos de **App Automate**, username y access key.
 - Una version instalable y compatible de **Google Clock / Reloj**, paquete `com.google.android.deskclock`, para subir a BrowserStack.
 
@@ -165,3 +184,11 @@ Jenkins ahora usa `C:\ProgramData\Jenkins\.jenkins\apps\qa2-reloj\Reloj-completo
 La ejecucion 7 (commit 3a5a62b) volvio a recibir HTTP 422 `BROWSERSTACK_UNPROCESSABLE_ENTITY` al cargar el APK completo. Por tanto, cambiar de XAPK a APK no resolvio el rechazo. La cuenta mostraba 100 de 100 minutos disponibles. La carga por URL de la app oficial WikipediaSample.apk desde App Management fue aceptada; se utilizo exclusivamente como control y NO sustituye a Reloj en las pruebas ni al APP_ID del pipeline.
 
 La FAQ oficial de BrowserStack atribuye este codigo a minutos de prueba agotados para la app o a una marca de su sistema de deteccion de abuso: https://www.browserstack.com/support/faq/app-automate/common-errors/browserstack_unprocessable_entity-error-during-app-upload. No se puede determinar cual de esas condiciones aplica a Reloj desde el mensaje generico recibido. El saldo general de la cuenta no demuestra que la app este habilitada. Se requiere revision del proveedor antes de afirmar que la integracion movil funciona. No se han cambiado paquetes ni firmas para eludir ese control y no se ha desactivado Appium para presentar un resultado aprobado.
+
+### Correccion del fallo Appium del 17 de noviembre de 2026
+
+El registro de Practico4 proporcionado ese dia confirma que la carga de Reloj ya fue aceptada, Newman y Karate aprobaron, y las cinco pruebas web aprobaron. Appium abrio una sesion real pero fallo en los hooks inicial y final: el servidor respondio `Unknown mobile command "getCurrentPackage"`. Esa ejecucion uso el commit antiguo `4266278`.
+
+`appium/support/android-compat.cjs` mantiene el comando moderno y, solo ante ese mensaje concreto, consulta el endpoint HTTP [current_package de Appium](https://appium.github.io/appium.io/docs/en/commands/device/activity/current-package/), disponible en WDIO como `appiumGetCurrentPackage`. Los errores de red, de sesion o del endpoint alternativo siguen haciendo fallar las pruebas. No se omiten casos ni se simula una aprobacion.
+
+`npm.cmd run check` incluye ocho pruebas de regresion de esta compatibilidad y doce comprobaciones de configuracion, reportes y puerta de calidad. Despues de publicar, volver a ejecutar Practico4 y comprobar que el checkout usa el commit nuevo. Mantener RUN_API_PIPELINES y RUN_BROWSERSTACK activados, y USE_IMPORTED_API desactivado para conservar el trabajo Newman que ya aprobo. La suite movil completa debe validarse de nuevo en BrowserStack; las pruebas de regresion locales no equivalen a esa ejecucion.

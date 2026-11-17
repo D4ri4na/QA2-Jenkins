@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "node --use-system-ca scripts/run-newman.cjs",
+    "test": "node --use-system-ca scripts/run-api.cjs",
+    "test:api": "node --use-system-ca scripts/run-api.cjs",
     "test:web": "npm --prefix webDriveIO test",
     "test:web:browserstack": "npm --prefix webDriveIO run test:browserstack",
     "test:mobile": "npm --prefix appium test",
     "test:mobile:local": "npm --prefix appium run test:local",
     "upload:app": "node scripts/upload-browserstack.cjs",
-    "check": "node --test scripts/check-config.test.cjs scripts/upload-browserstack.test.cjs"
+    "check": "node --test scripts/check-config.test.cjs scripts/upload-browserstack.test.cjs scripts/api.test.cjs scripts/android-compat.test.cjs"
   },
   "dependencies": {
     "newman": "6.2.3",

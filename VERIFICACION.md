@@ -2,6 +2,16 @@
 
 Fecha de trabajo: 28 de octubre de 2026 (America/La_Paz).
 
+## Actualizacion del 17 de noviembre de 2026
+
+- El registro de Practico4 entregado por el usuario confirma carga de Reloj aceptada, Newman SUCCESS, Karate SUCCESS y WDIO 5/5. Appium fallo antes de ejecutar los casos por `Unknown mobile command "getCurrentPackage"` en los hooks de preparacion y limpieza.
+- Se agrego compatibilidad con el endpoint HTTP `current_package` para esa respuesta concreta del servidor, manteniendo los errores reales y las aserciones de navegacion.
+- `npm.cmd run check`: **20/20 comprobaciones aprobadas**, incluidas ocho regresiones de compatibilidad y doce comprobaciones de configuracion, reportes, carga y puerta de calidad. Las respuestas de BrowserStack en estas comprobaciones son simuladas.
+- Newman existente sigue siendo la opcion predeterminada; las colecciones importadas son opcionales mediante USE_IMPORTED_API o Jenkinsfile.api.
+- La ejecucion completa con la correccion en BrowserStack sigue pendiente. Publicar el codigo y volver a construir Practico4; el registro anterior uso `4266278`.
+
+Las secciones siguientes conservan la evidencia historica de octubre; no describen una nueva ejecucion de BrowserStack.
+
 ## Comprobaciones realizadas
 
 - WebdriverIO local: **5/5 casos aprobados** en Chrome 156.0.8078.48.

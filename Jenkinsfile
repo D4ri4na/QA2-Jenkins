@@ -9,8 +9,9 @@ pipeline {
     }
     parameters {
         booleanParam(name: 'RUN_API_PIPELINES', defaultValue: true, description: 'Ejecutar tambien Newman y Karate ya configurados en Jenkins')
+        booleanParam(name: 'USE_IMPORTED_API', defaultValue: false, description: 'Usar las colecciones API importadas en lugar del trabajo Newman existente; requiere qa2-gorest-token')
+        string(name: 'NEWMAN_JOB', defaultValue: 'Newman_Pipeline', description: 'Trabajo Newman existente, usado si USE_IMPORTED_API esta desactivado')
         booleanParam(name: 'RUN_BROWSERSTACK', defaultValue: true, description: 'Ejecutar Appium en BrowserStack. Desactivarlo deja la entrega INCOMPLETA (UNSTABLE).')
-        string(name: 'NEWMAN_JOB', defaultValue: 'Newman_Pipeline', description: 'Trabajo existente de Newman')
         string(name: 'KARATE_JOB', defaultValue: 'karate', description: 'Trabajo existente de Karate')
         string(name: 'APP_ID', defaultValue: '', description: 'App Reloj subida a BrowserStack: bs://...')
         string(name: 'APP_PATH', defaultValue: '', description: 'Opcional: ruta del APK/AAB/XAPK de Reloj en el agente para subirlo en esta ejecucion')
@@ -55,14 +56,44 @@ exit /b %errorlevel%
             }
         }
         stage('Newman - pipeline de API') {
-            when { expression { params.RUN_API_PIPELINES } }
+            when { expression { params.RUN_API_PIPELINES && !params.USE_IMPORTED_API } }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     script {
-                        def run = build job: params.NEWMAN_JOB, wait: true, propagate: false
+                        def run = build job: (params.NEWMAN_JOB ?: 'Newman_Pipeline'), wait: true, propagate: false
                         echo "Newman: ${run.result} - ${run.absoluteUrl}"
                         if (run.result != 'SUCCESS') { error("Newman termino con ${run.result}") }
                     }
+                }
+            }
+        }
+        stage('Newman - API importada') {
+            when { beforeAgent true; expression { params.RUN_API_PIPELINES && params.USE_IMPORTED_API } }
+            agent any
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    deleteDir()
+                    checkout scm
+                    withCredentials([string(credentialsId: 'qa2-gorest-token', variable: 'GOREST_TOKEN')]) {
+                        bat '''@echo off
+set "PATH=%NODEJS_HOME%;%PATH%"
+call npm.cmd ci --no-audit --no-fund
+if errorlevel 1 exit /b %errorlevel%
+call npm.cmd run test:api
+exit /b %errorlevel%
+'''
+                    }
+                }
+            }
+            post {
+                always {
+                    junit testResults: 'reports/*.xml', allowEmptyResults: false
+                    publishHTML(target: [allowMissing: false, alwaysLinkToLastBuild: true, keepAll: true,
+                        reportDir: 'reports', reportFiles: 'QA_Dashboard.html', reportName: 'Newman - QA Dashboard'])
+                }
+                cleanup {
+                    archiveArtifacts artifacts: 'reports/QA_Dashboard.html,reports/QA_Dashboard.css,reports/QA_Resumen.json,reports/*.xml', allowEmptyArchive: true
+                    cleanWs(deleteDirs: true, disableDeferredWipeout: true)
                 }
             }
         }

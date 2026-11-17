@@ -5,7 +5,10 @@ function createReporter(output, title) {
     const file = path.join(output, 'results.json');
     return {
         prepare() {
-            fs.rmSync(output, { recursive: true, force: true });
+            // WDIO abre sus logs antes de onPrepare: conservar ese directorio.
+            for (const entry of fs.existsSync(output) ? fs.readdirSync(output) : []) {
+                if (entry !== 'logs') fs.rmSync(path.join(output, entry), { recursive: true, force: true });
+            }
             fs.mkdirSync(path.join(output, 'screenshots'), { recursive: true });
             fs.writeFileSync(file, '[]');
         },

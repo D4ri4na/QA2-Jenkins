@@ -1,0 +1,57 @@
+// API importada de arianylopez/jenkins-QA, rama practico3_jenkinsfile.
+pipeline {
+    agent any
+    options {
+        skipDefaultCheckout(true)
+        disableConcurrentBuilds()
+        timestamps()
+        timeout(time: 15, unit: 'MINUTES')
+    }
+    parameters {
+        choice(name: 'MODO', choices: ['COMPLETO', 'SOLO_SMOKE'], description: 'Alcance de las pruebas API')
+        booleanParam(name: 'PRUEBAS_NEGATIVAS', defaultValue: true, description: 'Incluir pruebas negativas')
+        string(name: 'MAX_PROMEDIO_MS', defaultValue: '3000', description: 'Limite promedio en ms')
+        string(name: 'MAX_P95_MS', defaultValue: '5000', description: 'Limite p95 en ms')
+        booleanParam(name: 'SIMULAR_FALLO', defaultValue: false, description: 'Demostrar rechazo de la puerta de calidad')
+    }
+    environment {
+        NODEJS_HOME = 'C:\\Program Files\\nodejs'
+        NODE_OPTIONS = '--use-system-ca'
+    }
+    stages {
+        stage('Checkout') {
+            steps { deleteDir(); checkout scm }
+        }
+        stage('Instalar Newman') {
+            steps {
+                bat '''@echo off
+set "PATH=%NODEJS_HOME%;%PATH%"
+call npm.cmd ci --no-audit --no-fund
+exit /b %errorlevel%
+'''
+            }
+        }
+        stage('Smoke, regresion y quality gate') {
+            steps {
+                withCredentials([string(credentialsId: 'qa2-gorest-token', variable: 'GOREST_TOKEN')]) {
+                    bat '''@echo off
+set "PATH=%NODEJS_HOME%;%PATH%"
+call npm.cmd run test:api
+exit /b %errorlevel%
+'''
+                }
+            }
+        }
+    }
+    post {
+        always {
+            junit testResults: 'reports/*.xml', allowEmptyResults: false
+            publishHTML(target: [reportDir: 'reports', reportFiles: 'QA_Dashboard.html',
+                reportName: 'QA Dashboard', keepAll: true, alwaysLinkToLastBuild: true, allowMissing: false])
+        }
+        cleanup {
+            archiveArtifacts artifacts: 'reports/QA_Dashboard.html,reports/QA_Dashboard.css,reports/QA_Resumen.json,reports/*.xml', allowEmptyArchive: true
+            cleanWs(deleteDirs: true, disableDeferredWipeout: true)
+        }
+    }
+}

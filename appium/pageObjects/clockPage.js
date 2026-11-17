@@ -1,3 +1,4 @@
+const { getCurrentPackage } = require('../support/android-compat.cjs');
 const pkg = 'com.google.android.deskclock';
 const id = name => `id=${pkg}:id/${name}`;
 class ClockPage {
@@ -32,7 +33,7 @@ class ClockPage {
         }
     }
     async tab(name) {
-        if (await driver.getCurrentPackage() !== pkg) await driver.activateApp(pkg);
+        if (await getCurrentPackage(driver) !== pkg) await driver.activateApp(pkg);
         if (await driver.isKeyboardShown()) await driver.hideKeyboard();
         const pickerCancel = await $(id('material_timepicker_cancel_button'));
         if (await pickerCancel.isDisplayed()) await pickerCancel.click();
