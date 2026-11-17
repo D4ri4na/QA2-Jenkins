@@ -12,6 +12,13 @@ Fecha de trabajo: 28 de octubre de 2026 (America/La_Paz).
 
 Las secciones siguientes conservan la evidencia historica de octubre; no describen una nueva ejecucion de BrowserStack.
 
+### Seguimiento del build 9
+
+- Newman, Karate y las cinco pruebas WDIO volvieron a aprobar. Appium ejecuto siete casos: dos aprobaron y cinco fallaron por busquedas de controles de Reloj.
+- Se leyeron las capturas y XML archivados por Jenkins: la alarma 16:17 existe en `alarm_card_layout`; el temporizador usa `play_pause` y `tertiary_button`. Las correcciones se basan en esos controles observados.
+- `npm.cmd run check`: **28/28 aprobadas**, incluidas ocho regresiones nuevas para ambas variantes de interfaz, estado pausado, limpieza y XPath. El XPath encontro exactamente una alarma 16:17 en el XML original del build 9.
+- No se ha ejecutado nuevamente la suite completa en BrowserStack con estos cambios.
+
 ## Comprobaciones realizadas
 
 - WebdriverIO local: **5/5 casos aprobados** en Chrome 156.0.8078.48.

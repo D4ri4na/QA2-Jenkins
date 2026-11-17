@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy>
+  <!-- Estructura observada en la captura XML de BrowserStack, build 9. -->
+  <android.view.ViewGroup resource-id="com.google.android.deskclock:id/alarm_card_layout" content-desc="">
+    <android.widget.TextView resource-id="com.google.android.deskclock:id/digital_clock" text="16:17" content-desc="16:17" />
+    <android.widget.Switch resource-id="com.google.android.deskclock:id/onoff" checked="true" />
+  </android.view.ViewGroup>
+  <!-- Variante moderna ya soportada por la suite local. -->
+  <android.view.ViewGroup resource-id="com.google.android.deskclock:id/alarm_card" content-desc="4:17 PM alarm">
+    <android.widget.TextView resource-id="com.google.android.deskclock:id/digital_clock" text="4:17" />
+  </android.view.ViewGroup>
+  <android.view.ViewGroup resource-id="com.google.android.deskclock:id/alarm_card_layout">
+    <android.widget.TextView resource-id="com.google.android.deskclock:id/digital_clock" text="14:17" />
+  </android.view.ViewGroup>
+  <android.view.ViewGroup resource-id="com.google.android.deskclock:id/alarm_card_layout">
+    <android.widget.TextView resource-id="com.google.android.deskclock:id/digital_clock" text="09:00" />
+  </android.view.ViewGroup>
+</hierarchy>

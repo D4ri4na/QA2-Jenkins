@@ -192,3 +192,11 @@ El registro de Practico4 proporcionado ese dia confirma que la carga de Reloj ya
 `appium/support/android-compat.cjs` mantiene el comando moderno y, solo ante ese mensaje concreto, consulta el endpoint HTTP [current_package de Appium](https://appium.github.io/appium.io/docs/en/commands/device/activity/current-package/), disponible en WDIO como `appiumGetCurrentPackage`. Los errores de red, de sesion o del endpoint alternativo siguen haciendo fallar las pruebas. No se omiten casos ni se simula una aprobacion.
 
 `npm.cmd run check` incluye ocho pruebas de regresion de esta compatibilidad y doce comprobaciones de configuracion, reportes y puerta de calidad. Despues de publicar, volver a ejecutar Practico4 y comprobar que el checkout usa el commit nuevo. Mantener RUN_API_PIPELINES y RUN_BROWSERSTACK activados, y USE_IMPORTED_API desactivado para conservar el trabajo Newman que ya aprobo. La suite movil completa debe validarse de nuevo en BrowserStack; las pruebas de regresion locales no equivalen a esa ejecucion.
+
+### Selectores corregidos tras Practico4, build 9
+
+El build 9 ya supero el fallo de protocolo y ejecuto los siete casos moviles: dos aprobaron y cinco fallaron. Las capturas y XML archivados confirman que la alarma de 16:17 se creo correctamente dentro de `alarm_card_layout`. La suite ahora reconoce ese contenedor y `alarm_card`, valida la hora usando el reloj y su descripcion, y no confunde 14:17 con 4:17.
+
+El temporizador usa `play_pause` y `tertiary_button` en Reloj 7.5. Se elimino el fallback al FAB al pausar porque ese boton agrega otro temporizador. Se conserva la comprobacion de estado pausado y la eliminacion con regreso a la pantalla de configuracion. Las variantes modernas siguen soportadas.
+
+`npm.cmd run check`: **28/28 comprobaciones aprobadas**. El XPath tambien se verifico directamente sobre el XML real del fallo: encuentra una unica alarma, de 16:17. Esto verifica los selectores y la logica local; la ejecucion completa en BrowserStack requiere reconstruir Practico4 con el nuevo commit.

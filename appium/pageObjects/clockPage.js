@@ -43,7 +43,26 @@ class ClockPage {
         await expect(tab).toHaveAttribute('selected', 'true');
     }
     alarm() {
-        return $(`//*[@resource-id="${pkg}:id/alarm_card"][.//*[@resource-id="${pkg}:id/digital_clock" and (contains(@text,"4:17") or contains(@text,"16:17"))]]`);
+        return $(`//*[@resource-id="${pkg}:id/alarm_card" or @resource-id="${pkg}:id/alarm_card_layout"][.//*[@resource-id="${pkg}:id/digital_clock" and (@text="4:17" or @text="04:17" or @text="16:17")]]`);
+    }
+    async alarmDescription() {
+        const alarm = this.alarm();
+        const time = await alarm.$(id('digital_clock'));
+        return [await time.getText(), await time.getAttribute('content-desc'), await alarm.getAttribute('content-desc')].filter(Boolean).join(' ');
+    }
+    async pauseTimer() {
+        // No usar fab como fallback: en Reloj 7.5 significa "Add timer".
+        await (await this.first([id('play_pause'), id('play_pause_button'), '~Pause'])).click();
+        await browser.waitUntil(async () => {
+            const resume = await this.first([id('play_pause'), id('pause_resume_text'), id('play_pause_button'), '~Resume', '~Start']);
+            const description = await resume.getAttribute('content-desc');
+            const state = description && description !== 'null' ? description : await resume.getText();
+            return /Resume|Start/i.test(state);
+        }, { timeoutMsg: 'El temporizador no quedo pausado' });
+    }
+    async deleteTimer() {
+        await (await this.first([id('delete_timer_button'), id('tertiary_button'), id('delete_button'), '~Delete'])).click();
+        await expect($(id('timer_setup_digit_1'))).toBeDisplayed();
     }
     async createAlarm() {
         await this.tab('alarm');

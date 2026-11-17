@@ -16,7 +16,7 @@ describe('Practico 7 - App de Tiempo', () => {
     it('Crear una nueva alarma en horario PM', async () => {
         await clock.deleteAlarm();
         await clock.createAlarm();
-        await expect(clock.alarm()).toHaveAttribute('content-desc', expect.stringMatching(/PM|16:17/));
+        expect(await clock.alarmDescription()).toMatch(/\bPM\b|16:17/i);
     });
 
     it('Expandir una alarma y anadirle una etiqueta', async () => {
@@ -80,16 +80,10 @@ describe('Practico 7 - App de Tiempo', () => {
         }
         await (await clock.first([id('timer_start_button'), id('fab'), '~Start'])).click();
         try {
-            const pause = await clock.first([id('play_pause_button'), id('fab'), '~Pause']);
-            await pause.click();
-            const resume = await clock.first([id('pause_resume_text'), id('play_pause_button'), '~Resume']);
-            const description = await resume.getAttribute('content-desc');
-            const state = description && description !== 'null' ? description : await resume.getText();
-            expect(state).toMatch(/Resume|Start/i);
+            await clock.pauseTimer();
         } finally {
-            await (await clock.first([id('delete_timer_button'), id('delete_button'), '~Delete'])).click();
+            await clock.deleteTimer();
         }
-        await expect($(id('timer_setup_digit_1'))).toBeDisplayed();
     });
     it('Agregar La Paz al Reloj Mundial', async () => {
         await clock.tab('clock');
